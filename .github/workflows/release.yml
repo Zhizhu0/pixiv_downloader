@@ -1,0 +1,73 @@
+name: Auto Build & Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史以方便打标签
+
+      # 1. 解析 pubspec.yaml 获取版本号
+      - name: Get Version from pubspec.yaml
+        id: pubspec
+        shell: pwsh
+        run: |
+          # 读取 version 行，例如 version: 1.0.0+1
+          $versionLine = Get-Content pubspec.yaml | Select-String "version: "
+          $version = $versionLine.ToString().Split(":")[1].Trim()
+          # 将 + 替换为 - 因为 tag 不建议包含 +
+          $tagVersion = $version.Replace("+", "-")
+          # 组合版本号和 GitHub 构建号，确保唯一性
+          $finalTag = "v$tagVersion-build.${{ github.run_number }}"
+          echo "tag=$finalTag" >> $env:GITHUB_OUTPUT
+          echo "Plain version: $version"
+
+      # 2. 安装 Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 3. 构建 Windows
+      - name: Build Windows
+        run: flutter build windows --release
+
+      # 4. 打包产物
+      - name: Package Release
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\runner\Release\* -DestinationPath aurora_app_windows.zip
+
+      # 5. 自动创建 Tag 并发布 Release
+      - name: Auto Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.pubspec.outputs.tag }}
+          name: "自动构建发布 - ${{ steps.pubspec.outputs.tag }}"
+          body: |
+            ### 自动构建说明
+            这是由 GitHub Actions 自动生成的构建产物。
+            - **基础版本**: ${{ steps.pubspec.outputs.tag }}
+            - **构建时间**: ${{ github.event.head_commit.timestamp }}
+            - **提交信息**: ${{ github.event.head_commit.message }}
+            
+            *注意：此版本为开发过程中的自动化快照。*
+          draft: false
+          prerelease: false
+          files: aurora_app_windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
