@@ -44,7 +44,7 @@ jobs:
 
       # 3. 构建 Windows
       - name: Build Windows
-        run: flutter build windows --release
+        run: flutter build windows --release --build-number=${{ github.run_number }}
 
       # 4. 打包产物
       - name: Package Release
