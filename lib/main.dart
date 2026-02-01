@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,12 +36,14 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
   late Animation<Offset> _blob1Anim;
   late Animation<Offset> _blob2Anim;
   late Animation<Offset> _blob3Anim;
-  late List<_Star> _stars = [];
+
+  List<_Star> _stars = [];
+
+  // 侧边栏控件
+  List<SidebarItem> _sidebarItems = [];
 
   // --- 页面控制逻辑 ---
-  int _currentIndex = 0; // 0: 主页, 1: Bilibili
-  bool _isBilibiliRunning = false; // 标记 Bilibili 是否已激活（显示侧边栏图标）
-  bool _hasLoadedWebView = false;  // 标记是否已经加载过 WebView (懒加载)
+  int _currentIndex = 0;
 
   // --- InAppWebView 控制器 ---
   InAppWebViewController? _webViewController;
@@ -84,27 +87,8 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
 
     // 初始化 App 列表
     myApps = [
-      AppItem(
-        name: "浏览器", 
-        icon: Icons.language, 
-        onTap: () => print("打开浏览器"),
-      ),
-      AppItem(
-        name: "设置", 
-        icon: Icons.settings, 
-        onTap: () => print("进入设置页面"),
-      ),
-      AppItem(
-        name: "bilibili", 
-        icon: "assets/icons/image.png", // 你的图片路径
-        onTap: () {
-          setState(() {
-            _isBilibiliRunning = true; // 激活侧边栏图标
-            _hasLoadedWebView = true;  // 开始加载 WebView（如果之前没加载过）
-            _currentIndex = 1;         // 切换显示层级
-          });
-        }
-      ),
+      _buildAppItem("bilibili", "assets/icons/bilibili.png", "https://www.bilibili.com/"),
+      _buildAppItem("Pixiv", "assets/icons/pixiv.png", "https://www.pixiv.net/"),
     ];
   }
 
@@ -203,27 +187,9 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
                       ),
                     ),
                     
-                    _hasLoadedWebView 
-                        ? ClipRRect(
-                            // 给左边加个圆角，视觉效果更好
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(20), 
-                              bottomLeft: Radius.circular(20)
-                            ),
-                            child: InAppWebView(
-                              initialUrlRequest: URLRequest(
-                                url: WebUri("https://www.bilibili.com")
-                              ),
-                              initialSettings: InAppWebViewSettings(
-                                transparentBackground: true,
-                                javaScriptEnabled: true,
-                              ),
-                              onWebViewCreated: (controller) {
-                                _webViewController = controller;
-                              },
-                            ),
-                          )
-                        : Container(), // 没点击过的时候放个空容器
+                    for (var item in _sidebarItems) ... [
+                      _buildWebPage(item.url, ValueKey(item.url))
+                    ]
                   ],
                 ),
               ),
@@ -260,61 +226,100 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
               ),
             ),
           ),
-          child: Column(
-            children: [
-              const SizedBox(height: 30),
-              
-              // 主页按钮
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _currentIndex = 0; // 切换显示层级为 0 (主页)
-                    // 注意：这里没有销毁 WebView，它只是被 Stack 隐藏了，后台还在运行
-                  });
-                },
-                child: _buildMenuItem(Icons.home_filled, _currentIndex == 0),
-              ),
+          child: SlidableAutoCloseBehavior(
+            child: Column(
+              children: [
+                const SizedBox(height: 30),
+                _buildMenuItem(SidebarItem(label: "主页", url: "", icon: Icons.home_filled), 0),
 
-              const SizedBox(height: 20),
-
-              // Bilibili 运行状态图标 (只有运行过才显示)
-              if (_isBilibiliRunning)
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 1; // 切换显示层级为 1 (WebView)
-                    });
-                  },
-                  // 使用 live_tv 图标代表 Bilibili，大小和样式与主页图标完全一致
-                  child: _buildMenuItem(Icons.live_tv, _currentIndex == 1),
-                ),
-            ],
-          ),
+                for (int i = 0; i < _sidebarItems.length; i++) ...[
+                  const SizedBox(height: 20),
+                  _buildMenuItem(_sidebarItems[i], i + 1),
+                ],
+              ],
+            ),
+          )
         ),
       ),
     );
   }
 
-  // 侧边栏菜单项封装，确保样式统一
-  Widget _buildMenuItem(IconData icon, bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      width: double.infinity, // 占满宽度以便点击
-      decoration: isActive
-          ? const BoxDecoration(
-              border: Border(left: BorderSide(color: Colors.orangeAccent, width: 3)),
-              gradient: LinearGradient(
-                colors: [Color.fromRGBO(255, 255, 255, 0.1), Colors.transparent],
-              ),
-            )
-          : null,
-      child: Center(
-        child: Icon(
-          icon,
-          color: isActive ? Colors.white : Colors.white54,
-          size: 26, // 统一大小
+  Widget _buildWebPage(String url, Key key) {
+    return ClipRRect(
+        key: key,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20), 
+          bottomLeft: Radius.circular(20)
         ),
+        child: InAppWebView(
+          initialUrlRequest: URLRequest(
+            url: WebUri(url)
+          ),
+          initialSettings: InAppWebViewSettings(
+            transparentBackground: true,
+            javaScriptEnabled: true,
+          ),
+          onWebViewCreated: (controller) {
+            _webViewController = controller;
+          },
+        ),
+      );
+  }
+
+  // 侧边栏菜单项封装
+  Widget _buildMenuItem(SidebarItem item, int index) {
+    return Slidable(
+      // key 是必须的，用于标识列表中的项
+      key: ValueKey(item.hashCode), 
+      enabled: index != 0, 
+
+      // 右侧滑出的面板（从右往左划）
+      endActionPane: ActionPane(
+        motion: const BehindMotion(),
+        extentRatio: 0.5, // 侧滑区域占比
+        children: [
+          CustomSlidableAction(
+            onPressed: (context) {
+              // 这里执行关闭逻辑
+              _handleClose(index - 1);
+            },
+            backgroundColor: Colors.transparent,
+            child: const Icon(
+              Icons.close,
+              size: 20,
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+
+      // 原有的内容部分
+      child: Builder(
+        builder: (context) {
+          return InkWell(
+            onTap: () {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              width: double.infinity,
+              decoration: _currentIndex == index
+                  ? const BoxDecoration(
+                      border: Border(left: BorderSide(color: Colors.orangeAccent, width: 3)),
+                      gradient: LinearGradient(
+                        colors: [Color.fromRGBO(255, 255, 255, 0.1), Colors.transparent],
+                      ),
+                    )
+                  : null,
+              child: Center(
+                child: _buildSidebarIcon(item.icon, _currentIndex == index),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -368,9 +373,89 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
       ),
     );
   }
+
+  Widget _buildSidebarIcon(dynamic iconSource, bool isActive) {
+    const double iconSize = 26.0;
+    
+    // 情况 A：如果是系统图标 IconData
+    if (iconSource is IconData) {
+      return Icon(
+        iconSource,
+        size: iconSize,
+        color: isActive ? Colors.white : Colors.white54,
+      );
+    } 
+    
+    // 情况 B：如果是图片路径 String
+    if (iconSource is String) {
+      return Opacity(
+        // 对于彩色图片，我们通常用透明度来表示“未激活”状态
+        opacity: isActive ? 1.0 : 0.5, 
+        child: Image.asset(
+          iconSource,
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
+          // 防止图片路径写错导致程序崩溃
+          errorBuilder: (context, error, stackTrace) => 
+              const Icon(Icons.broken_image, size: iconSize, color: Colors.white24),
+        ),
+      );
+    }
+
+    // 兜底：如果什么都不是
+    return const SizedBox(width: iconSize, height: iconSize);
+  }
+
+  AppItem _buildAppItem(String name, dynamic icon, String url) {
+    return AppItem(
+        name: name, 
+        icon: icon, // 你的图片路径
+        onTap: () {
+          bool isFinded = false;
+          for (var item in _sidebarItems) {
+            if (item.label == name) {
+              isFinded = true;
+              setState(() {
+                _currentIndex = _sidebarItems.indexOf(item) + 1; // 切换显示层级
+              });
+              break;
+            }
+          }
+          if (!isFinded) {
+            setState(() {
+              _sidebarItems.add(
+                SidebarItem(
+                  label: name, 
+                  url: url, 
+                  icon: icon,
+                )
+              );
+              _currentIndex = _sidebarItems.length; // 切换显示层级
+            });
+          }
+        }
+      );
+  }
+  void _handleClose(int indexInSidebar) {
+    setState(() {
+      int targetStackIndex = indexInSidebar + 1; // 在 Stack 中的实际索引
+
+      if (_currentIndex == targetStackIndex) {
+        // 1. 如果关闭的是当前正在看的页面 -> 回到主页
+        _currentIndex = 0;
+      } else if (_currentIndex > targetStackIndex) {
+        // 2. 如果关闭的是当前页面“左侧/上方”的页面 -> 索引减 1 保持指向原页面
+        _currentIndex--;
+      }
+
+      // 3. 移除数据
+      _sidebarItems.removeAt(indexInSidebar);
+    });
+  }
+  
 }
 
-// ... StarFieldPainter 和 _Star 类保持不变 ...
 class StarFieldPainter extends CustomPainter {
   final Animation<double> animation;
   final List<_Star> stars;
@@ -404,4 +489,12 @@ class AppItem {
   final VoidCallback onTap;
 
   AppItem({required this.name, required this.icon, required this.onTap});
+}
+
+class SidebarItem {
+  final String label;
+  final String url;
+  final dynamic icon;
+
+  SidebarItem({required this.label, required this.url, required this.icon});
 }

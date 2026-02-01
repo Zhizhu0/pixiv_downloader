@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   
+  flutter_slidable: ^3.0.0
   flutter_inappwebview: ^6.0.0
   path_provider: ^2.1.1
   path: ^1.8.3
@@ -67,7 +68,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/desktop/
-    - assets/icons/image.png
+    - assets/icons/bilibili.png
+    - assets/icons/pixiv.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
