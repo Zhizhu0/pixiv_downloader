@@ -27,7 +27,7 @@ jobs:
           $versionLine = Get-Content pubspec.yaml | Select-String "version: "
           $version = $versionLine.ToString().Split(":")[1].Trim()
           # 组合版本号和 GitHub 构建号，确保唯一性
-          $finalTag = "v$tagVersion-build.${{ github.run_number }}"
+          $finalTag = "v$version-build.${{ github.run_number }}"
           echo "tag=$finalTag" >> $env:GITHUB_OUTPUT
           echo "Plain version: $version"
 
