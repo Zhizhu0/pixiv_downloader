@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
@@ -32,6 +33,10 @@ class AuroraHomePage extends StatefulWidget {
 class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStateMixin {
   late AnimationController _controller;
 
+  // 本地服务器相关
+  late InAppLocalhostServer localhostServer;
+  int _actualPort = 8080;
+
   // 极光动画相关
   late Animation<Offset> _blob1Anim;
   late Animation<Offset> _blob2Anim;
@@ -53,6 +58,8 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+
+    _startServer();
     
     // 初始化动画 (保持原样)
     _controller = AnimationController(
@@ -89,11 +96,24 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
     myApps = [
       _buildAppItem("bilibili", "assets/icons/bilibili.png", "https://www.bilibili.com/"),
       _buildAppItem("Pixiv", "assets/icons/pixiv.png", "https://www.pixiv.net/"),
+      _buildAppItem("设置", Icons.settings, "assets/web/settings.html"),
     ];
+  }
+
+  Future<void> _startServer() async {
+    var socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    _actualPort = socket.port;
+    await socket.close();
+
+    // 2. 使用这个确定的可用端口启动服务器
+    localhostServer = InAppLocalhostServer(port: _actualPort);
+    await localhostServer.start();
+    setState(() {}); // 服务器启动后刷新一下
   }
 
   @override
   void dispose() {
+    localhostServer.close();
     _controller.dispose();
     super.dispose();
   }
@@ -253,11 +273,15 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
         ),
         child: InAppWebView(
           initialUrlRequest: URLRequest(
-            url: WebUri(url)
+            url: url.startsWith('http') 
+              ? WebUri(url) 
+              : WebUri("http://localhost:$_actualPort/$url")
           ),
           initialSettings: InAppWebViewSettings(
             transparentBackground: true,
             javaScriptEnabled: true,
+            allowFileAccessFromFileURLs: true, 
+            allowUniversalAccessFromFileURLs: true,
           ),
           onWebViewCreated: (controller) {
             _webViewController = controller;

@@ -1,0 +1,107 @@
+<!-- assets/desktop/index.html -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            /* 动态背景容器 */
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #000000);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 紫黑流光动画 */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 玻璃拟态图标容器 */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .app-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .app-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .icon-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 不同的图标颜色 */
+        .bili { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+        .pixiv { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+    </style>
+</head>
+<body>
+
+    <div class="app-grid">
+        <!-- Bilibili 图标 -->
+        <div class="app-icon">
+            <div class="icon-box bili">📺</div>
+            <span>Bilibili</span>
+        </div>
+
+        <!-- Pixiv 图标 -->
+        <div class="app-icon">
+            <div class="icon-box pixiv">🎨</div>
+            <span>Pixiv</span>
+        </div>
+        
+        <!-- 更多图标... -->
+    </div>
+
+    <script>
+        // 核心：点击图标后，通过 JS Bridge 通知 Flutter
+        function openApp(title, url) {
+            if (window.flutter_inappwebview) {
+                window.flutter_inappwebview.callHandler('launchApp', {
+                    'title': title,
+                    'url': url
+                });
+            } else {
+                console.log("Flutter environment not detected");
+            }
+        }
+    </script>
+</body>
+</html>
