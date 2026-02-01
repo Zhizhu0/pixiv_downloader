@@ -1,4 +1,4 @@
-package com.example.pixiv_downloader
+package com.example.zeeie
 
 import io.flutter.embedding.android.FlutterActivity
 

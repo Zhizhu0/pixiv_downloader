@@ -49,7 +49,7 @@ jobs:
       - name: Package Release
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath app_windows.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath zeeie.zip
 
       # 5. 自动创建 Tag 并发布 Release
       - name: Auto Release
@@ -67,6 +67,6 @@ jobs:
             *注意：此版本为开发过程中的自动化快照。*
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
-          files: app_windows.zip
+          files: zeeie.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
