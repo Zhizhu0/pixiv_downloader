@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'dart:io';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,10 +43,10 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
   late Animation<Offset> _blob2Anim;
   late Animation<Offset> _blob3Anim;
 
-  List<_Star> _stars = [];
+  List<Star> _stars = [];
 
   // 侧边栏控件
-  List<SidebarItem> _sidebarItems = [];
+  final List<SidebarItem> _sidebarItems = [];
 
   // --- 页面控制逻辑 ---
   int _currentIndex = 0;
@@ -84,7 +85,7 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
 
     final random = math.Random();
     _stars = List.generate(1000, (index) {
-      return _Star(
+      return Star(
         x: random.nextDouble() * 3000,
         y: random.nextDouble() * 2000,
         size: random.nextDouble() * 2 + 0.5,
@@ -94,8 +95,8 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
 
     // 初始化 App 列表
     myApps = [
-      _buildAppItem("bilibili", "assets/icons/bilibili.png", "https://www.bilibili.com/"),
-      _buildAppItem("Pixiv", "assets/icons/pixiv.png", "https://www.pixiv.net/"),
+      _buildAppItem("bilibili", "assets/icons/bilibili.svg", "https://www.bilibili.com/"),
+      _buildAppItem("Pixiv", "assets/icons/pixiv.svg", "https://www.pixiv.net/"),
       _buildAppItem("设置", Icons.settings, "assets/web/settings.html"),
     ];
   }
@@ -386,11 +387,21 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
             return Icon(iconSource, size: iconSize, color: Colors.white);
           } 
           if (iconSource is String) {
-            return Image.asset(
-              iconSource, 
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.white),
-            );
+            if (iconSource.endsWith('.svg')) {
+              return SvgPicture.asset(
+                iconSource,
+                width: iconSize,
+                height: iconSize,
+                placeholderBuilder: (context) => const CircularProgressIndicator(),
+              );
+            } else {
+              return Image.asset(
+                iconSource, 
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+              );
+            }
           }
           return const Icon(Icons.help_outline, color: Colors.white);
         }(),
@@ -401,7 +412,7 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
   Widget _buildSidebarIcon(dynamic iconSource, bool isActive) {
     const double iconSize = 26.0;
     
-    // 情况 A：如果是系统图标 IconData
+    // 1. 处理系统图标 IconData
     if (iconSource is IconData) {
       return Icon(
         iconSource,
@@ -410,24 +421,39 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
       );
     } 
     
-    // 情况 B：如果是图片路径 String
+    // 2. 处理字符串路径 (PNG 或 SVG)
     if (iconSource is String) {
-      return Opacity(
-        // 对于彩色图片，我们通常用透明度来表示“未激活”状态
-        opacity: isActive ? 1.0 : 0.5, 
-        child: Image.asset(
+      Widget imageWidget;
+      
+      if (iconSource.endsWith('.svg')) {
+        // 如果是 SVG 路径
+        imageWidget = SvgPicture.asset(
           iconSource,
           width: iconSize,
           height: iconSize,
           fit: BoxFit.contain,
-          // 防止图片路径写错导致程序崩溃
+          // SVG 报错处理（可选）
+          placeholderBuilder: (context) => const Icon(Icons.broken_image, size: iconSize, color: Colors.white24),
+        );
+      } else {
+        // 如果是普通的 PNG/JPG 路径
+        imageWidget = Image.asset(
+          iconSource,
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) => 
               const Icon(Icons.broken_image, size: iconSize, color: Colors.white24),
-        ),
+        );
+      }
+
+      // 统一应用透明度（未激活状态变淡）
+      return Opacity(
+        opacity: isActive ? 1.0 : 0.5, 
+        child: imageWidget,
       );
     }
 
-    // 兜底：如果什么都不是
     return const SizedBox(width: iconSize, height: iconSize);
   }
 
@@ -482,7 +508,7 @@ class _AuroraHomePageState extends State<AuroraHomePage> with TickerProviderStat
 
 class StarFieldPainter extends CustomPainter {
   final Animation<double> animation;
-  final List<_Star> stars;
+  final List<Star> stars;
 
   StarFieldPainter(this.animation, this.stars) : super(repaint: animation);
 
@@ -502,9 +528,9 @@ class StarFieldPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-class _Star {
+class Star {
   double x, y, size, opacitySpeed;
-  _Star({required this.x, required this.y, required this.size, required this.opacitySpeed});
+  Star({required this.x, required this.y, required this.size, required this.opacitySpeed});
 }
 
 class AppItem {

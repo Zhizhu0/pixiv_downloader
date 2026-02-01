@@ -33,6 +33,7 @@ dependencies:
   
   flutter_slidable: ^3.0.0
   flutter_inappwebview: ^6.0.0
+  flutter_svg: ^2.0.10+1
   path_provider: ^2.1.1
   path: ^1.8.3
 
@@ -69,8 +70,8 @@ flutter:
   assets:
     - assets/web/
     - assets/web/settings.html
-    - assets/icons/bilibili.png
-    - assets/icons/pixiv.png
+    - assets/icons/bilibili.svg
+    - assets/icons/pixiv.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
