@@ -50,7 +50,7 @@ jobs:
       - name: Package Release
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\runner\Release\* -DestinationPath aurora_app_windows.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath aurora_app_windows.zip
 
       # 5. 自动创建 Tag 并发布 Release
       - name: Auto Release
